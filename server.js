@@ -33,8 +33,8 @@ const CLIENTE_FIXO_CIABRA = "";
 
 // ⚙️ CONFIGURAÇÕES DO PAINEL ZEUS
 const PANEL_URL = "https://netuno.painelr.top";
-const USERNAME = "Noname123";
-const PASSWORD = "topnet123!";
+const USERNAME = "acessonetcast";
+const PASSWORD = "flamengo92!";
 const MEMBER_ID = "163207";
 
 // 👨‍💻 SUPORTE HUMANO
