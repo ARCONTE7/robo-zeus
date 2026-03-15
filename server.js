@@ -9,6 +9,32 @@ const cors = require('cors');
 moment.locale('pt-br');
 const app = express();
 
+// Proteções de inicialização
+if (!fs.existsSync('./midias')) {
+    fs.mkdirSync('./midias', { recursive: true });
+}
+
+for (const arquivo of [
+    './banco_testes.json',
+    './trava_saudacao.json',
+    './suporte_aguardando.json',
+    './clientes_planos.json',
+    './historico_conversas.json'
+]) {
+    if (!fs.existsSync(arquivo)) {
+        fs.writeFileSync(arquivo, JSON.stringify({}));
+    }
+}
+
+// Evita crash silencioso
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -92,8 +118,12 @@ function lerJSON(caminho) {
 
 function salvarJSON(caminho, dados) {
     try {
-        fs.writeFileSync(caminho, JSON.stringify(dados, null, 2));
-    } catch (e) {}
+        const temp = `${caminho}.tmp`;
+        fs.writeFileSync(temp, JSON.stringify(dados, null, 2));
+        fs.renameSync(temp, caminho);
+    } catch (e) {
+        console.error('Erro salvarJSON:', caminho, e.message);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -441,23 +471,67 @@ monitorarExpiracaoTestes();
 async function obterSessao() {
     try {
         const agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
-        const getLogin = await axios.get(`${PANEL_URL}/login`, { headers: { 'User-Agent': agent } });
-        const cookies = getLogin.headers['set-cookie'] ? getLogin.headers['set-cookie'].map(c => c.split(';')[0]) : [];
-        const csrfToken = getLogin.data.match(/name=['"]csrf['"] value=['"](.*?)['"]/)?.[1] || '';
-        const form = new URLSearchParams({ csrf: csrfToken, username: USERNAME, password: PASSWORD, save: '1' });
-        await axios.post(`${PANEL_URL}/login`, form, {
-            headers: { 'Cookie': cookies.join('; '), 'User-Agent': agent },
-            maxRedirects: 0,
-            validateStatus: s => s < 400
+
+        const getLogin = await axios.get(`${PANEL_URL}/login`, {
+            headers: {
+                'User-Agent': agent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            },
+            timeout: 20000
         });
+
+        const cookiesIniciais = getLogin.headers['set-cookie']
+            ? getLogin.headers['set-cookie'].map(c => c.split(';')[0])
+            : [];
+
+        const csrfToken =
+            getLogin.data.match(/name=['"]csrf['"] value=['"](.*?)['"]/)?.[1] || '';
+
+        if (!csrfToken) {
+            console.error('CSRF não encontrado na página de login');
+            return null;
+        }
+
+        const form = new URLSearchParams();
+        form.append('csrf', csrfToken);
+        form.append('username', USERNAME);
+        form.append('password', PASSWORD);
+        form.append('save', '1');
+
+        const loginResp = await axios.post(`${PANEL_URL}/login`, form.toString(), {
+            headers: {
+                'User-Agent': agent,
+                'Cookie': cookiesIniciais.join('; '),
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': PANEL_URL,
+                'Referer': `${PANEL_URL}/login`
+            },
+            maxRedirects: 0,
+            validateStatus: (s) => s >= 200 && s < 400,
+            timeout: 20000
+        });
+
+        const cookiesPosLogin = loginResp.headers['set-cookie']
+            ? loginResp.headers['set-cookie'].map(c => c.split(';')[0])
+            : [];
+
+        const cookies = [...cookiesIniciais, ...cookiesPosLogin];
+
+        if (!cookies.length) {
+            console.error('Nenhum cookie retornado após login');
+            return null;
+        }
+
         return cookies.join('; ');
     } catch (e) {
+        console.error('Erro obterSessao:', e.response?.status, e.response?.data || e.message);
         return null;
     }
 }
 
 async function gerarTeste(para, appId = null) {
     const db = lerJSON(TESTES_FILE);
+
     if (db[para]) {
         const proximaData = moment(db[para].expiracao).subtract(6, 'hours').add(14, 'days');
         if (moment().isBefore(proximaData)) {
@@ -480,43 +554,80 @@ Infelizmente fornecemos apenas *um teste gratuito* por pessoa a cada 14 dias.
     }
 
     try {
-        const payload = new URLSearchParams({
-            key: 't-basic',
-            quick: '1',
-            method: 'post',
-            action: `${PANEL_URL}/api/lines`
-        });
+        const agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+
+        const payload = new URLSearchParams();
+        payload.append('key', 't-basic');
+        payload.append('quick', '1');
+        payload.append('method', 'post');
+        payload.append('action', `${PANEL_URL}/api/lines`);
         if (appId) payload.append('app_id', appId);
 
-        const resCriar = await axios.post(`${PANEL_URL}/api/lines`, payload, {
-            headers: { 'Cookie': sessao, 'X-Requested-With': 'XMLHttpRequest' }
+        const resCriar = await axios.post(`${PANEL_URL}/api/lines`, payload.toString(), {
+            headers: {
+                'User-Agent': agent,
+                'Cookie': sessao,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': PANEL_URL,
+                'Referer': `${PANEL_URL}/dashboard`
+            },
+            timeout: 20000
         });
 
-        if (resCriar.data && resCriar.data.ajax) {
-            const resDados = await axios.get(resCriar.data.ajax[0].action, {
-                headers: { 'Cookie': sessao, 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const cleanText = resDados.data.html['#myModal']
-                .replace(/<br\s*\/?>/gi, '\n')
-                .replace(/<[^>]*>/g, '')
-                .trim();
-
-            let user = (cleanText.match(/usu[aá]rio:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
-            let pass = (cleanText.match(/senha:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
-
-            if (!user) {
-                const lines = cleanText.split('\n');
-                const userLine = lines.find(l => l.includes('ário:'));
-                if (userLine) user = userLine.split(':')[1].replace(/\*/g, '').trim();
-            }
-
-            const criacao = moment().utcOffset("-03:00").format();
-            const exp = moment().utcOffset("-03:00").add(6, 'hours').format();
-            db[para] = { user, pass, expiracao: exp, criacao: criacao };
-            salvarJSON(TESTES_FILE, db);
-            return { user, pass, exp, criacao };
+        if (!resCriar.data || !resCriar.data.ajax || !resCriar.data.ajax[0]?.action) {
+            console.error('Resposta inesperada ao criar teste:', JSON.stringify(resCriar.data).slice(0, 500));
+            await enviarTexto(para, "⚠️ Não foi possível gerar o teste agora. Tente novamente em instantes.");
+            return null;
         }
+
+        const resDados = await axios.get(resCriar.data.ajax[0].action, {
+            headers: {
+                'User-Agent': agent,
+                'Cookie': sessao,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': `${PANEL_URL}/dashboard`
+            },
+            timeout: 20000
+        });
+
+        const htmlModal = resDados.data?.html?.['#myModal'];
+        if (!htmlModal) {
+            console.error('Modal de dados do teste não encontrado:', JSON.stringify(resDados.data).slice(0, 500));
+            await enviarTexto(para, "⚠️ Teste criado com resposta incompleta. Tente novamente.");
+            return null;
+        }
+
+        const cleanText = htmlModal
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]*>/g, '')
+            .trim();
+
+        let user = (cleanText.match(/usu[aá]rio:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
+        let pass = (cleanText.match(/senha:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
+
+        if (!user) {
+            const lines = cleanText.split('\n');
+            const userLine = lines.find(l => l.toLowerCase().includes('ário:'));
+            if (userLine) user = userLine.split(':')[1].replace(/\*/g, '').trim();
+        }
+
+        if (!user) {
+            console.error('Usuário do teste não encontrado no retorno:', cleanText);
+            await enviarTexto(para, "⚠️ Não consegui ler os dados do teste. Tente novamente.");
+            return null;
+        }
+
+        const criacao = moment().utcOffset("-03:00").format();
+        const exp = moment().utcOffset("-03:00").add(6, 'hours').format();
+
+        db[para] = { user, pass, expiracao: exp, criacao };
+        salvarJSON(TESTES_FILE, db);
+
+        return { user, pass, exp, criacao };
     } catch (e) {
+        console.error('Erro gerarTeste:', e.response?.status, e.response?.data || e.message);
+        await enviarTexto(para, "⚠️ Servidor em manutenção. Tente novamente.");
         return null;
     }
 }
@@ -653,7 +764,6 @@ app.post('/webhook', async (req, res) => {
         return res.sendStatus(200);
     }
 
-    // ALTERADO: renovação agora envia para suporte humano
     if (texto === 'renovar' || buttonId === 'renovar_agora') {
         await enviarTexto(from, MSG_SUPORTE_HUMANO);
         return res.sendStatus(200);
@@ -673,12 +783,10 @@ app.post('/webhook', async (req, res) => {
         if (buttonId === 'm_teste') {
             await menuDispositivos(from);
         } else if (buttonId === 'm_planos') {
-            // ALTERADO: planos agora envia para suporte humano
             await enviarTexto(from, MSG_SUPORTE_HUMANO);
         } else if (buttonId === 'm_suporte') {
             estado.step = 'AGUARDANDO_SUPORTE';
             logConversa(from, nome, 'cliente', 'Solicitou Suporte', true);
-            // ALTERADO: suporte também usa o número novo
             await enviarTexto(from, MSG_SUPORTE_HUMANO);
         }
         return res.sendStatus(200);
@@ -928,7 +1036,6 @@ Disponível: LG, Samsung e ROKU
             }
         }
 
-        // ALTERADO: qualquer fluxo de plano agora envia para suporte humano
         if (listId.startsWith('plano_')) {
             await enviarTexto(from, MSG_SUPORTE_HUMANO);
             return res.sendStatus(200);
@@ -1312,7 +1419,7 @@ const PAINEL_HTML = `<!DOCTYPE html>
         renderizarLista();
     }
 
-    setInterval(atualizar, 2000);
+    setInterval(atualizar, 10000);
     atualizar();
 </script>
 </body>
@@ -1343,6 +1450,10 @@ app.post('/api/responder', async (req, res) => {
 });
 
 // Outras Rotas
+app.get('/', (req, res) => {
+    res.send('Zeus online');
+});
+
 app.get('/webhook', (req, res) => {
     if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
         res.send(req.query['hub.challenge']);
