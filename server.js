@@ -18,7 +18,7 @@ app.use(express.json());
  */
 
 // ⚙️ CONFIGURAÇÕES META API
-const TOKEN = "SEU_TOKEN_META_AQUI";
+const TOKEN = "EAAUuGpEfQx4BQtYLc0drrtpUy3OeckAKEF7fqfjkkA0nTeypoNEiVo6ZCDihIsnnGZAwaZC4ueqZAlcoJS8DqjVHfARonfzKFf17SPWURuPE9CYkeOajgtk5Bnp61ognewIZCHeFebsV8Tdo8wEDtMWyZBlZCSZBXwlJ2JZBbJ8pUGohsKtOouZBn7jxWBWrdFIQZDZD";
 const PHONE_ID = "905733172633398";
 const VERIFY_TOKEN = "zeus_webhook_2026";
 const PORT = process.env.PORT || 3000;
