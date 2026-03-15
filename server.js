@@ -9,37 +9,11 @@ const cors = require('cors');
 moment.locale('pt-br');
 const app = express();
 
-// Proteções de inicialização
-if (!fs.existsSync('./midias')) {
-    fs.mkdirSync('./midias', { recursive: true });
-}
-
-for (const arquivo of [
-    './banco_testes.json',
-    './trava_saudacao.json',
-    './suporte_aguardando.json',
-    './clientes_planos.json',
-    './historico_conversas.json'
-]) {
-    if (!fs.existsSync(arquivo)) {
-        fs.writeFileSync(arquivo, JSON.stringify({}));
-    }
-}
-
-// Evita crash silencioso
-process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION:', err);
-});
-
-process.on('unhandledRejection', (reason) => {
-    console.error('UNHANDLED REJECTION:', reason);
-});
-
 app.use(cors());
 app.use(express.json());
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * 🔱 ROBÔ ZEUS PRO v10.0 - VERSÃO FINAL CORRIGIDA 🔱
+ * 🔱 ROBÔ ZEUS PRO v11.0 - CORRIGIDO 🔱
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -69,7 +43,7 @@ const MSG_SUPORTE_HUMANO = `👨‍💻 *ATENDIMENTO HUMANO*
 
 Para ativação, renovação ou pagamento, fale agora com nosso suporte humano.
 
-📲 Clique aqui: https://wa.me/${SUPORTE_HUMANO_NUMERO}
+📲 Clique aqui: wa.me/${SUPORTE_HUMANO_NUMERO}
 
 Número: ${SUPORTE_HUMANO_NUMERO}`;
 
@@ -118,16 +92,12 @@ function lerJSON(caminho) {
 
 function salvarJSON(caminho, dados) {
     try {
-        const temp = `${caminho}.tmp`;
-        fs.writeFileSync(temp, JSON.stringify(dados, null, 2));
-        fs.renameSync(temp, caminho);
-    } catch (e) {
-        console.error('Erro salvarJSON:', caminho, e.message);
-    }
+        fs.writeFileSync(caminho, JSON.stringify(dados, null, 2));
+    } catch (e) {}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔱 FUNÇÃO DE RENOVAÇÃO NO PAINEL (BASEADA NO CÓDIGO BAILEYS) 🔱
+// 🔱 FUNÇÃO DE RENOVAÇÃO NO PAINEL 🔱
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function executarRenovacao(usuario, planoId, nomePlano) {
@@ -189,6 +159,33 @@ const PLANOS_IDS = {
     'Semestral': '3',
     'Anual': '4'
 };
+
+// 📝 TABELA DE PREÇOS ATUALIZADA
+const TABELA_PRECOS = `📊 *PLANOS PROMOCIONAIS* 🔥
+
+━━━━━━━━━━━━━━━━━━━━
+💎 *Mensal:*    R$ 25,00
+   (R$ 5 de desconto)
+━━━━━━━━━━━━━━━━━━━━
+💎 *Bimestral:*   R$ 45,00
+   (R$ 15 de desconto)
+━━━━━━━━━━━━━━━━━━━━
+💎 *Trimestral:*  R$ 70,00
+   (R$ 20 de desconto)
+━━━━━━━━━━━━━━━━━━━━
+💎 *Semestral:*   R$ 135,00
+   (R$ 45 de desconto)
+━━━━━━━━━━━━━━━━━━━━
+💎 *Anual:*       R$ 250,00
+   (R$ 120 de desconto)
+━━━━━━━━━━━━━━━━━━━━
+
+✅ Mais de 20.000 canais
+✅ Filmes e séries em HD/4K
+✅ Sem travamentos
+✅ Suporte 24h
+
+👉 Para contratar, fale com nosso *suporte humano*!`;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🔱 FUNÇÕES DE DETECÇÃO AUTOMÁTICA DE PAGAMENTO 🔱
@@ -322,7 +319,7 @@ function registrarMensagem() {
     msgStats.total++;
 }
 
-// 🔄 SISTEMA DE VENCIMENTO
+// 🔄 SISTEMA DE VENCIMENTO (CORRIGIDO)
 async function verificarVencimentos() {
     const clientes = lerJSON(CLIENTES_FILE);
     const agora = moment().utcOffset("-03:00");
@@ -358,23 +355,14 @@ async function enviarAvisoVencimento(telefone, cliente, tempo) {
 
 ⏰ Passando para lembrar que seu plano *${cliente.plano || 'Premium'}* vence em *${tempo}*.
 
-🔥 Renove agora e continue aproveitando:
-✅ Mais de 20.000 canais ao vivo
-✅ Filmes e séries em HD e 4K
-✅ Sem travamentos, servidor premium
-✅ Suporte 24 horas
+🔥 Renove agora com nosso suporte humano:
 
-💰 Para renovar e *garantir 10% de desconto*, digite *RENOVAR* ou acesse nosso menu de planos.
+📲 wa.me/${SUPORTE_HUMANO_NUMERO}
 
 Não fique sem seu entretenimento! 📺
 
 Equipe HelpTV 🔱`;
     await enviarTexto(telefone, msg);
-    await enviarBotoes(telefone, "Escolha uma opção:", [
-        { id: "renovar_agora", title: "🔄 Renovar Agora" },
-        { id: "m_planos", title: "💎 Ver Planos" },
-        { id: "m_suporte", title: "👨‍💻 Suporte" }
-    ]);
 }
 
 async function enviarAvisoVencido(telefone, cliente) {
@@ -382,19 +370,12 @@ async function enviarAvisoVencido(telefone, cliente) {
 
 ⚠️ Seu plano *${cliente.plano || 'Premium'}* venceu hoje.
 
-😢 Sentimos sua falta! Renove agora e volte a aproveitar o melhor do streaming.
+😢 Sentimos sua falta! Renove agora com nosso suporte humano:
 
-🎁 *OFERTA ESPECIAL DE RETORNO:*
-Renove nas próximas 24h e ganhe *15% de desconto* + *7 dias extras* grátis!
-
-👉 Digite *RENOVAR* para aproveitar.
+📲 wa.me/${SUPORTE_HUMANO_NUMERO}
 
 Equipe HelpTV 🔱`;
     await enviarTexto(telefone, msg);
-    await enviarBotoes(telefone, "🔥 Não perca essa oferta!", [
-        { id: "renovar_agora", title: "🎁 Renovar c/ Desconto" },
-        { id: "m_planos", title: "💎 Ver Planos" }
-    ]);
 }
 
 async function renovarPlanoCliente(telefone, plano, valor, nomeCliente) {
@@ -440,6 +421,7 @@ async function renovarPlanoCliente(telefone, plano, valor, nomeCliente) {
 setInterval(verificarVencimentos, 5 * 60 * 1000);
 verificarVencimentos();
 
+// MONITORAR EXPIRAÇÃO DOS TESTES (6 HORAS)
 async function monitorarExpiracaoTestes() {
     const db_testes = lerJSON(TESTES_FILE);
     const agora = moment();
@@ -455,9 +437,9 @@ async function monitorarExpiracaoTestes() {
 
 👤 *Usuário:* ${teste.user}
 
-🔥 Gostou da qualidade? Garanta seu plano agora e continue assistindo sem interrupções!
+🔥 Gostou da qualidade? Garanta seu plano agora com nosso suporte humano:
 
-👉 Digite *MENU* e vá em *Planos*!`);
+📲 wa.me/${SUPORTE_HUMANO_NUMERO}`);
             db_testes[telefone].avisoEnviado = true;
             salvarJSON(TESTES_FILE, db_testes);
         }
@@ -467,167 +449,144 @@ async function monitorarExpiracaoTestes() {
 setInterval(monitorarExpiracaoTestes, 60000);
 monitorarExpiracaoTestes();
 
-// 🔐 INTEGRAÇÃO PAINEL ZEUS
+// 🔐 INTEGRAÇÃO PAINEL ZEUS - CORRIGIDA
 async function obterSessao() {
     try {
         const agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
-
-        const getLogin = await axios.get(`${PANEL_URL}/login`, {
-            headers: {
-                'User-Agent': agent,
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-            },
-            timeout: 20000
+        const getLogin = await axios.get(`${PANEL_URL}/login`, { 
+            headers: { 'User-Agent': agent },
+            timeout: 10000
         });
-
-        const cookiesIniciais = getLogin.headers['set-cookie']
-            ? getLogin.headers['set-cookie'].map(c => c.split(';')[0])
-            : [];
-
-        const csrfToken =
-            getLogin.data.match(/name=['"]csrf['"] value=['"](.*?)['"]/)?.[1] || '';
-
-        if (!csrfToken) {
-            console.error('CSRF não encontrado na página de login');
-            return null;
-        }
-
-        const form = new URLSearchParams();
-        form.append('csrf', csrfToken);
-        form.append('username', USERNAME);
-        form.append('password', PASSWORD);
-        form.append('save', '1');
-
-        const loginResp = await axios.post(`${PANEL_URL}/login`, form.toString(), {
-            headers: {
+        
+        const cookies = getLogin.headers['set-cookie'] ? getLogin.headers['set-cookie'].map(c => c.split(';')[0]) : [];
+        const csrfToken = getLogin.data.match(/name=['"]csrf['"] value=['"](.*?)['"]/)?.[1] || '';
+        
+        const form = new URLSearchParams({ 
+            csrf: csrfToken, 
+            username: USERNAME, 
+            password: PASSWORD, 
+            save: '1' 
+        });
+        
+        await axios.post(`${PANEL_URL}/login`, form, {
+            headers: { 
+                'Cookie': cookies.join('; '), 
                 'User-Agent': agent,
-                'Cookie': cookiesIniciais.join('; '),
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Origin': PANEL_URL,
-                'Referer': `${PANEL_URL}/login`
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
             maxRedirects: 0,
-            validateStatus: (s) => s >= 200 && s < 400,
-            timeout: 20000
+            validateStatus: s => s < 400,
+            timeout: 10000
         });
-
-        const cookiesPosLogin = loginResp.headers['set-cookie']
-            ? loginResp.headers['set-cookie'].map(c => c.split(';')[0])
-            : [];
-
-        const cookies = [...cookiesIniciais, ...cookiesPosLogin];
-
-        if (!cookies.length) {
-            console.error('Nenhum cookie retornado após login');
-            return null;
-        }
-
+        
         return cookies.join('; ');
     } catch (e) {
-        console.error('Erro obterSessao:', e.response?.status, e.response?.data || e.message);
+        console.error('Erro ao obter sessão:', e.message);
         return null;
     }
 }
 
 async function gerarTeste(para, appId = null) {
     const db = lerJSON(TESTES_FILE);
-
+    
+    // Verifica se já tem teste recente
     if (db[para]) {
-        const proximaData = moment(db[para].expiracao).subtract(6, 'hours').add(14, 'days');
-        if (moment().isBefore(proximaData)) {
-            await enviarTexto(para, `Calma, calma amigão! kk 😂 Você já brilhou por aqui antes.
-
-Infelizmente fornecemos apenas *um teste gratuito* por pessoa a cada 14 dias.
+        const expirado = moment().isAfter(moment(db[para].expiracao));
+        if (!expirado) {
+            // Teste ainda ativo
+            const exp = moment(db[para].expiracao).format('DD/MM/YYYY HH:mm:ss');
+            await enviarTexto(para, `✅ Você já possui um teste ativo!
 
 👤 *Usuário:* ${db[para].user}
 🔑 *Senha:* ${db[para].pass || '(Apenas usuário)'}
+⏳ *Válido até:* ${exp}
 
-🚀 Se quiser continuar, digite *MENU* e vá em *PLANOS*!`);
+Continue usando ou contrate um plano com nosso suporte!`);
+            return null;
+        }
+        
+        // Teste expirado, verifica se já passaram 14 dias
+        const proximaData = moment(db[para].expiracao).add(14, 'days');
+        if (moment().isBefore(proximaData)) {
+            await enviarTexto(para, `Calma, calma amigão! kk 😂 Você já usou seu teste recentemente.
+
+Infelizmente fornecemos apenas *um teste gratuito* por pessoa a cada 14 dias.
+
+🚀 Se quiser continuar, contrate um plano com nosso suporte:
+📲 wa.me/${SUPORTE_HUMANO_NUMERO}`);
             return null;
         }
     }
 
     const sessao = await obterSessao();
     if (!sessao) {
-        await enviarTexto(para, "⚠️ Servidor em manutenção. Tente novamente.");
+        await enviarTexto(para, "⚠️ Servidor temporariamente indisponível. Tente novamente em alguns minutos.");
         return null;
     }
 
     try {
-        const agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
-
-        const payload = new URLSearchParams();
-        payload.append('key', 't-basic');
-        payload.append('quick', '1');
-        payload.append('method', 'post');
-        payload.append('action', `${PANEL_URL}/api/lines`);
+        const payload = new URLSearchParams({
+            key: 't-basic',
+            quick: '1',
+            method: 'post',
+            action: `${PANEL_URL}/api/lines`
+        });
         if (appId) payload.append('app_id', appId);
 
-        const resCriar = await axios.post(`${PANEL_URL}/api/lines`, payload.toString(), {
-            headers: {
-                'User-Agent': agent,
-                'Cookie': sessao,
+        const resCriar = await axios.post(`${PANEL_URL}/api/lines`, payload, {
+            headers: { 
+                'Cookie': sessao, 
                 'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Origin': PANEL_URL,
-                'Referer': `${PANEL_URL}/dashboard`
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            timeout: 20000
+            timeout: 15000
         });
 
-        if (!resCriar.data || !resCriar.data.ajax || !resCriar.data.ajax[0]?.action) {
-            console.error('Resposta inesperada ao criar teste:', JSON.stringify(resCriar.data).slice(0, 500));
-            await enviarTexto(para, "⚠️ Não foi possível gerar o teste agora. Tente novamente em instantes.");
-            return null;
+        if (resCriar.data && resCriar.data.ajax && resCriar.data.ajax[0]) {
+            const resDados = await axios.get(resCriar.data.ajax[0].action, {
+                headers: { 
+                    'Cookie': sessao, 
+                    'X-Requested-With': 'XMLHttpRequest' 
+                },
+                timeout: 10000
+            });
+            
+            const cleanText = resDados.data.html['#myModal']
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<[^>]*>/g, '')
+                .trim();
+
+            let user = (cleanText.match(/usu[aá]rio:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
+            let pass = (cleanText.match(/senha:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
+
+            if (!user) {
+                const lines = cleanText.split('\n');
+                const userLine = lines.find(l => l.toLowerCase().includes('usu') || l.toLowerCase().includes('ário'));
+                if (userLine) user = userLine.split(':')[1]?.replace(/\*/g, '').trim() || '';
+            }
+
+            if (!user) {
+                throw new Error('Não foi possível extrair usuário');
+            }
+
+            const criacao = moment().utcOffset("-03:00").format();
+            const exp = moment().utcOffset("-03:00").add(6, 'hours').format();
+            
+            db[para] = { 
+                user, 
+                pass: pass || user, // Usa o usuário como senha se não tiver senha
+                expiracao: exp, 
+                criacao: criacao 
+            };
+            salvarJSON(TESTES_FILE, db);
+            
+            return { user, pass: pass || user, exp, criacao };
+        } else {
+            throw new Error('Resposta inválida do painel');
         }
-
-        const resDados = await axios.get(resCriar.data.ajax[0].action, {
-            headers: {
-                'User-Agent': agent,
-                'Cookie': sessao,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Referer': `${PANEL_URL}/dashboard`
-            },
-            timeout: 20000
-        });
-
-        const htmlModal = resDados.data?.html?.['#myModal'];
-        if (!htmlModal) {
-            console.error('Modal de dados do teste não encontrado:', JSON.stringify(resDados.data).slice(0, 500));
-            await enviarTexto(para, "⚠️ Teste criado com resposta incompleta. Tente novamente.");
-            return null;
-        }
-
-        const cleanText = htmlModal
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<[^>]*>/g, '')
-            .trim();
-
-        let user = (cleanText.match(/usu[aá]rio:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
-        let pass = (cleanText.match(/senha:\s*([^\s\n]+)/i)?.[1] || '').replace(/\*/g, '').trim();
-
-        if (!user) {
-            const lines = cleanText.split('\n');
-            const userLine = lines.find(l => l.toLowerCase().includes('ário:'));
-            if (userLine) user = userLine.split(':')[1].replace(/\*/g, '').trim();
-        }
-
-        if (!user) {
-            console.error('Usuário do teste não encontrado no retorno:', cleanText);
-            await enviarTexto(para, "⚠️ Não consegui ler os dados do teste. Tente novamente.");
-            return null;
-        }
-
-        const criacao = moment().utcOffset("-03:00").format();
-        const exp = moment().utcOffset("-03:00").add(6, 'hours').format();
-
-        db[para] = { user, pass, expiracao: exp, criacao };
-        salvarJSON(TESTES_FILE, db);
-
-        return { user, pass, exp, criacao };
     } catch (e) {
-        console.error('Erro gerarTeste:', e.response?.status, e.response?.data || e.message);
-        await enviarTexto(para, "⚠️ Servidor em manutenção. Tente novamente.");
+        console.error('Erro ao gerar teste:', e.message);
+        await enviarTexto(para, "⚠️ Erro ao gerar teste. Tente novamente em alguns minutos.");
         return null;
     }
 }
@@ -636,7 +595,7 @@ function obterMensagemInicial(para, nome) {
     const trava = lerJSON(TRAVA_FILE);
     const agora = moment().utcOffset("-03:00");
     if (trava[para] && agora.diff(moment(trava[para]), 'days') < 14) {
-        return "Olá! Selecione uma opção no menu Zeus:";
+        return "Olá! Selecione uma opção no menu:";
     }
 
     const saudacoes = [
@@ -655,7 +614,7 @@ async function menuPrincipal(to, nome) {
     const textoTopo = obterMensagemInicial(to, nome);
     await enviarBotoes(to, `${textoTopo}\n\nEscolha uma das opções abaixo:`, [
         { id: "m_teste", title: "🎁 Teste Grátis" },
-        { id: "m_planos", title: "💎 Planos" },
+        { id: "m_planos", title: "💎 Ver Planos" },
         { id: "m_suporte", title: "👨‍💻 Suporte" }
     ]);
 }
@@ -731,6 +690,7 @@ app.post('/webhook', async (req, res) => {
             });
 
             const nomeArquivo = `${Date.now()}.jpg`;
+            if (!fs.existsSync('./midias')) fs.mkdirSync('./midias');
             fs.writeFileSync(`./midias/${nomeArquivo}`, imgResponse.data);
             texto = `[IMAGEM:/midias/${nomeArquivo}]`;
         } catch (e) {
@@ -764,6 +724,7 @@ app.post('/webhook', async (req, res) => {
         return res.sendStatus(200);
     }
 
+    // Renovação - redireciona para suporte humano
     if (texto === 'renovar' || buttonId === 'renovar_agora') {
         await enviarTexto(from, MSG_SUPORTE_HUMANO);
         return res.sendStatus(200);
@@ -782,688 +743,4 @@ app.post('/webhook', async (req, res) => {
     if (buttonId) {
         if (buttonId === 'm_teste') {
             await menuDispositivos(from);
-        } else if (buttonId === 'm_planos') {
-            await enviarTexto(from, MSG_SUPORTE_HUMANO);
-        } else if (buttonId === 'm_suporte') {
-            estado.step = 'AGUARDANDO_SUPORTE';
-            logConversa(from, nome, 'cliente', 'Solicitou Suporte', true);
-            await enviarTexto(from, MSG_SUPORTE_HUMANO);
-        }
-        return res.sendStatus(200);
-    }
-
-    if (listId) {
-        if (listId === 'd_android') await menuAndroidSub(from);
-        else if (listId === 'd_tvbox') await menuTvBoxSub(from);
-        else if (listId === 'd_iphone') {
-            const d = await gerarTeste(from);
-            if (d) {
-                const exp = moment(d.exp).format('DD/MM/YYYY HH:mm:ss');
-                const instrIphone = `🎉 PARABÉNS! SEU TESTE IPHONE/IPAD FOI GERADO!
-
-⏳ Duração: 6 horas (Válido até: ${exp})
-
-📥 App Sugerido: VU IPTV PLAYER (Baixe na App Store)
-
-📋 COMO CONFIGURAR:
-Ao abrir o aplicativo, selecione "Add User" e preencha exatamente assim:
-
-✨ Name: Helptv
-🌐 URL: ${DNS_IPHONE}
-👤 Username: ${d.user}
-🔑 Password: ${d.pass}
-
-━━━━━━━━━━━━━━━━━━━━
-👉 Digite MENU para voltar.`;
-                await enviarTexto(from, instrIphone);
-            }
-        } else if (listId === 'd_pc') {
-            const d = await gerarTeste(from);
-            if (d) {
-                const exp = moment(d.exp).format('DD/MM/YYYY HH:mm:ss');
-                const instrPC = `🎉 PARABÉNS! SEU TESTE PARA COMPUTADOR FOI GERADO!
-
-⏳ Duração: 6 horas (Válido até: ${exp})
-
-✨ OPÇÕES WEBPLAYER (Assista no navegador):
-1º Opção: ${LINK_PC_WEB_1}
-2º Opção: ${LINK_PC_WEB_2}
-
-✨ APLICATIVOS PC/WINDOWS:
-💻 SMARTERS PRO: ${LINK_PC_APP_1}
-💻 STREAM PLAYER: ${LINK_PC_APP_2}
-
-📋 DADOS DE LOGIN:
-🌐 URL/DNS: ${DNS_PLAYER}
-👤 Usuário: ${d.user}
-🔑 Senha: ${d.pass}
-
-💡 Dica: Use os mesmos dados acima para entrar em qualquer uma das opções citadas!
-
-━━━━━━━━━━━━━━━━━━━━
-👉 Digite MENU para voltar.`;
-                await enviarTexto(from, instrPC);
-            }
-        } else if (listId === 'd_smarttv') {
-            await menuSmartTvMarcas(from);
-        }
-
-        if (listId.startsWith('sub_a_') || listId.startsWith('sub_tv_')) {
-            const isTV = listId.startsWith('sub_tv_');
-            const type = listId.split('_')[2];
-            const appId = type === 'p2p' ? '114' : null;
-            const d = await gerarTeste(from, appId);
-
-            if (d) {
-                const exp = moment(d.exp).format('DD/MM/YYYY HH:mm:ss');
-                let info = "";
-
-                if (type === 'proprio') {
-                    if (isTV) {
-                        info = `📺 *PASSO A PASSO APP PRÓPRIO TV:*
-
-1️⃣ Abra o aplicativo *Downloader* ou *NTDown* na sua TV.
-2️⃣ Digite o código: *${PROPRIO_DOWNLOADER}* (Downloader) ou *${PROPRIO_NTDOWN}* (NTDown).
-3️⃣ Baixe, instale e abra o aplicativo.
-
-👤 *Usuário:* ${d.user}
-🔑 *Senha:* ${d.pass}`;
-                    } else {
-                        info = `📥 *DOWNLOAD APP PRÓPRIO:* ${LINK_APP_PROPRIO}
-📦 *Código Downloader:* ${PROPRIO_DOWNLOADER}
-
-👤 *Usuário:* ${d.user}
-🔑 *Senha:* ${d.pass}`;
-                    }
-                } else if (type === 'p2p') {
-                    if (isTV) {
-                        info = `🚀 *PASSO A PASSO P2P AMERICANO TV:*
-
-1️⃣ Abra o aplicativo *Downloader* ou *NTDown* na sua TV.
-2️⃣ Digite o código: *${P2P_DOWNLOADER}* (Downloader) ou *${P2P_NTDOWN}* (NTDown).
-3️⃣ Instale e abra o aplicativo.
-
-👤 *Usuário:* ${d.user}
-💡 *Este app não precisa de senha, basta inserir apenas o usuário!*`;
-                    } else {
-                        info = `🚀 *P2P AMERICANO MOBILE*
-📥 *Download:* ${LINK_P2P_DIRETO}
-📦 *Código Downloader:* ${P2P_DOWNLOADER}
-
-👤 *Usuário:* ${d.user}
-💡 *Este app não precisa de senha.*`;
-                    }
-                } else if (type === 'xciptv') {
-                    info = `🌐 *XCIPTV CONFIGURAÇÃO:*
-
-1️⃣ Instale o *XCIPTV PLAYER* direto na loja oficial do seu aparelho (Play Store).
-2️⃣ Abra o aplicativo e insira os dados abaixo:
-
-🌐 *Server URL:* ${DNS_PLAYER}
-👤 *Usuário:* ${d.user}
-🔑 *Senha:* ${d.pass}`;
-                }
-
-                await enviarTexto(from, `🎉 PARABÉNS! TESTE GERADO COM SUCESSO!
-
-⏳ Duração: 6 horas (Válido até: ${exp})
-
-${info}
-
-━━━━━━━━━━━━━━━━━━━━
-👉 Digite MENU para voltar.`);
-            }
-        }
-
-        if (listId.startsWith('brand_')) {
-            const brand = listId.split('_')[1];
-            if (brand === 'tvandroid') {
-                await menuTvBoxSub(from);
-            } else if (brand === 'others') {
-                const d = await gerarTeste(from);
-                if (d) {
-                    const expFormat = moment(d.exp).format('DD/MM/YYYY HH:mm:ss');
-                    const criacaoFormat = moment(d.criacao).format('DD/MM/YYYY HH:mm:ss');
-                    const completao = `✨ *Bem vindo a Streaming Plus* ✨
-
-*VALIDADE*
-*Data de validade:* ${expFormat}
-*Data de criação:* ${criacaoFormat}
------------------------------------------------------------
-✨ *Lista1:*
-http://assistz.top/get.php?username=${d.user}&password=${d.pass}&type=m3u_plus&output=ts
-
-✨ *Lista2:*
-${DNS_PLAYER}/get.php?username=${d.user}&password=${d.pass}&type=m3u_plus&output=hls
-
-✨ *Lista3:*
-http://techsuporte.xyz/get.php?username=${d.user}&password=${d.pass}&type=m3u_plus&output=ts
-
-✨ *Link SSIPTV:* https://streaming.appm.live/s/${d.user}/${d.pass}/download_m3u/
------------------------------------------------------------
-✨*3 APLICATIVOS PARCEIROS*
-
-✨ APLICATIVO XCLOUDTV
-Disponível: LG, Samsung e ROKU
-✨ *Provedor:* zeus10
-✨ Usuário: ${d.user}
-✨ Senha: ${d.pass}
------------------------------------------------------------
-✨ APLICATIVO EASY PLAYER
-Disponível: LG, Samsung e ROKU
-✨ URL PARA ATIVAÇÃO
-✨ http://appez.top
-✨ Usuário: ${d.user}
-✨ Senha: ${d.pass}
------------------------------------------------------------
-✨ APLICATIVO HD PLAYER
-Disponível: LG, Samsung e ROKU
-✨ Código: 654
-✨ Usuário: ${d.user}
-✨ Senha: ${d.pass}
------------------------------------------------------------
-✨ APLICATIVOS PARA SISTEMAS ANDROID
-
-✨ STREAMING PLUS IPTV
-Link direto: https://dl.ntdev.in/69313
-Código NTDOWN: 69313
-Código DOWNLOADER: 112138
------------------------------------------------------------
-✨ *Android App Zeus* ${LINK_APP_PROPRIO}
-*NTDOWN* (${PROPRIO_NTDOWN})
-*DONWLOADER* (${PROPRIO_DOWNLOADER})
------------------------------------------------------------
-✨ *WebPlayer*
-_1º Opção:_ ${LINK_PC_WEB_1}
-_2º Opção:_ ${LINK_PC_WEB_2}
-
-✨ APLICATIVOS PC/WINDOWS
-✨ SMARTERS PRO: ${LINK_PC_APP_1}
-✨ STREAM PLAYER: ${LINK_PC_APP_2}
------------------------------------------------------------
-✨ *XCIPTV*
-✨ ${DNS_PLAYER}
-✨ Usuário: ${d.user}
-✨ Senha: ${d.pass}
------------------------------------------------------------
-✨ *_IPTV Smarters Player_*
-Primeira opção Seu nome
-✨ Usuário: ${d.user}
-✨ Senha: ${d.pass}
-✨ ${DNS_IPHONE}
------------------------------------------------------------
-*DNS*
-SMART UP e SMART STB
-PRINCIPAL: 45.140.193.116
-ALTERNATIVAS:
-» DNS 1: 209.14.2.198
-» DNS 2: 51.222.156.94
------------------------------------------------------------`;
-                    await enviarTexto(from, completao);
-                }
-            } else {
-                const d = await gerarTeste(from);
-                if (d) {
-                    const exp = moment(d.exp).format('DD/MM/YYYY HH:mm:ss');
-                    const msgUnificada = `🎉 TESTE SMART TV GERADO!
-
-⏳ Duração: 6 horas (Válido até: ${exp})
-
-✨ APLICATIVO XCLOUDTV
-Disponível: LG, Samsung e ROKU
-👉 Provider: zeus10
-👤 Usuário: ${d.user}
-🔑 Senha: ${d.pass}
---------------------------
-✨ APLICATIVO EASY PLAYER
-Disponível: LG, Samsung e ROKU
-👉 URL PARA ATIVAÇÃO: http://appez.top
-👤 Usuário: ${d.user}
-🔑 Senha: ${d.pass}
---------------------------
-✨ APLICATIVO HD PLAYER
-Disponível: LG, Samsung e ROKU
-👉 Código: 654
-👤 Usuário: ${d.user}
-🔑 Senha: ${d.pass}
---------------------------
-🌟 DICA DE OURO: Esse mesmo usuário e senha funciona em todos os aplicativos citados acima. O que muda é apenas o campo de entrada no aplicativo escolhido!
-
-━━━━━━━━━━━━━━━━━━━━
-👉 Digite MENU para voltar.`;
-                    await enviarTexto(from, msgUnificada);
-                }
-            }
-        }
-
-        if (listId.startsWith('plano_')) {
-            await enviarTexto(from, MSG_SUPORTE_HUMANO);
-            return res.sendStatus(200);
-        }
-
-        return res.sendStatus(200);
-    }
-
-    if (texto === 'menu' || estado.step === 'INICIO') {
-        estado.step = 'MENU';
-        await menuPrincipal(from, nome);
-    }
-    res.sendStatus(200);
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🎨 PAINEL DE MONITORAMENTO (VISUAL WHATSAPP WEB FIDELIZADO)
-// ══════════════════════════════════════════════════════════════════════════════
-
-const PAINEL_HTML = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zeus Web</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-        ::-webkit-scrollbar { width: 6px !important; height: 6px !important; }
-        ::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); }
-        ::-webkit-scrollbar-track { background: hsla(0,0%,100%,0.1); }
-
-        :root {
-            --zap-bg: #d1d7db;
-            --zap-header: #f0f2f5;
-            --zap-sidebar: #ffffff;
-            --zap-chat-bg: #efeae2;
-            --zap-primary: #00a884;
-            --zap-incoming: #ffffff;
-            --zap-outgoing: #d9fdd3;
-            --zap-border: #e9edef;
-            --zap-text-main: #111b21;
-            --zap-text-sec: #8696a0;
-        }
-
-        body { background-color: var(--zap-bg); height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-
-        .app-container {
-            width: 100%; height: 100%;
-            max-width: 1600px;
-            background-color: var(--zap-sidebar);
-            display: flex;
-            box-shadow: 0 17px 50px 0 rgba(0,0,0,.19), 0 12px 15px 0 rgba(0,0,0,.24);
-            overflow: hidden;
-        }
-        @media (min-width: 1441px) { .app-container { height: 95vh; width: 97%; top: 19px; border-radius: 3px; } }
-
-        .sidebar {
-            width: 400px;
-            max-width: 450px;
-            display: flex; flex-direction: column;
-            border-right: 1px solid var(--zap-border);
-            background: var(--zap-sidebar);
-        }
-
-        .header {
-            height: 59px; background: var(--zap-header); padding: 10px 16px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid var(--zap-border);
-        }
-
-        .user-nav { display: flex; align-items: center; gap: 15px; }
-        .my-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: var(--zap-primary); display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; }
-
-        .filters {
-            display: flex; gap: 10px; padding: 8px 12px; background: var(--zap-sidebar); border-bottom: 1px solid var(--zap-border);
-        }
-        .filter-btn {
-            flex: 1; padding: 6px; border: none; background: var(--zap-header); border-radius: 24px;
-            font-size: 13px; color: var(--zap-text-sec); cursor: pointer; transition: 0.2s;
-        }
-        .filter-btn:hover { background: #e9edef; }
-        .filter-btn.active { background: #e7f8f5; color: var(--zap-primary); font-weight: 600; }
-
-        .contact-list { flex: 1; overflow-y: auto; background: var(--zap-sidebar); }
-
-        .contact-item {
-            height: 72px; display: flex; align-items: center; padding: 0 15px; cursor: pointer;
-            border-bottom: 1px solid var(--zap-border); transition: background .2s;
-        }
-        .contact-item:hover { background-color: #f5f6f6; }
-        .contact-item.active { background-color: #f0f2f5; }
-
-        .avatar-wrapper { position: relative; margin-right: 15px; }
-        .c-avatar { width: 49px; height: 49px; border-radius: 50%; background: #dfe5e7; display: flex; align-items: center; justify-content: center; color: white; font-size: 22px; }
-        .c-info { flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
-
-        .c-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-        .c-name { font-size: 17px; color: var(--zap-text-main); font-weight: 400; }
-        .c-time { font-size: 12px; color: var(--zap-text-sec); }
-
-        .c-preview { font-size: 14px; color: var(--zap-text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
-        .status-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: bold; }
-
-        .chat-area {
-            flex: 1; display: flex; flex-direction: column; background-color: var(--zap-chat-bg); position: relative;
-        }
-        .chat-area::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
-            opacity: 0.4; pointer-events: none;
-        }
-
-        .chat-header {
-            height: 59px; background: var(--zap-header); padding: 0 16px;
-            display: flex; align-items: center; border-bottom: 1px solid var(--zap-border); z-index: 10;
-        }
-        .chat-header-info { display: flex; flex-direction: column; margin-left: 15px; cursor: pointer; }
-        .chat-title { font-size: 16px; color: var(--zap-text-main); font-weight: 500; }
-        .chat-status { font-size: 13px; color: var(--zap-text-sec); }
-
-        .messages-container {
-            flex: 1; padding: 20px 60px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; z-index: 1;
-        }
-
-        .msg {
-            max-width: 65%; padding: 6px 7px 8px 9px; border-radius: 7.5px;
-            font-size: 14.2px; line-height: 19px; position: relative;
-            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); word-wrap: break-word;
-        }
-
-        .msg-in {
-            align-self: flex-start; background: var(--zap-incoming);
-            border-top-left-radius: 0;
-        }
-        .msg-in::before {
-            content: ""; position: absolute; top: 0; left: -8px; width: 0; height: 0;
-            border: 8px solid transparent; border-top-color: var(--zap-incoming); border-right-color: var(--zap-incoming);
-        }
-
-        .msg-out {
-            align-self: flex-end; background: var(--zap-outgoing);
-            border-top-right-radius: 0;
-        }
-        .msg-out::before {
-            content: ""; position: absolute; top: 0; right: -8px; width: 0; height: 0;
-            border: 8px solid transparent; border-top-color: var(--zap-outgoing); border-left-color: var(--zap-outgoing);
-        }
-
-        .msg-log {
-            align-self: center !important; background: #e9edef !important; box-shadow: none !important;
-            font-size: 12px !important; color: #54656f !important; border-radius: 8px !important;
-            max-width: 90% !important; text-align: center; padding: 5px 12px;
-        }
-        .msg-log::before { display: none !important; }
-
-        .msg-meta { font-size: 11px; color: rgba(0,0,0,0.45); float: right; margin-top: 4px; margin-left: 10px; }
-
-        .chat-footer {
-            min-height: 62px; background: var(--zap-header); padding: 5px 16px;
-            display: flex; align-items: center; gap: 10px; z-index: 10;
-        }
-        .input-box {
-            flex: 1; background: white; border-radius: 8px; padding: 9px 12px;
-            border: 1px solid white; display: flex; align-items: center;
-        }
-        .input-box input { width: 100%; border: none; outline: none; font-size: 15px; }
-        .btn-send { background: none; border: none; font-size: 24px; color: var(--zap-text-sec); cursor: pointer; }
-        .btn-send:hover { color: var(--zap-primary); }
-
-        .welcome-screen {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; background: var(--zap-header); border-bottom: 6px solid #25d366; z-index: 20;
-        }
-        .welcome-text h1 { color: #41525d; font-weight: 300; margin-top: 20px; }
-
-        .btn-back { display: none; font-size: 20px; color: var(--zap-text-sec); margin-right: 15px; cursor: pointer; }
-        @media (max-width: 900px) {
-            .sidebar { width: 100%; max-width: none; }
-            .chat-area { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
-            .chat-area.active { display: flex; }
-            .btn-back { display: block; }
-            .messages-container { padding: 20px 5%; }
-        }
-
-        .pulse-red { animation: pulse 1.5s infinite; color: #ea0038; margin-left: 5px; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-    </style>
-</head>
-<body>
-
-<div class="app-container">
-    <div class="sidebar">
-        <div class="header">
-            <div class="user-nav">
-                <div class="my-avatar"><i class="fa-solid fa-robot"></i></div>
-                <h3 style="color: #54656f; font-size: 16px;">Zeus Command</h3>
-            </div>
-            <div style="font-size: 12px; color: #54656f; text-align: right;">
-                <div id="sys-status" style="color: #00a884; font-weight: bold;">● Online</div>
-                <div id="last-update" style="font-size: 10px;">...</div>
-            </div>
-        </div>
-
-        <div class="filters">
-            <button class="filter-btn active" onclick="filtrar('todos', this)">Todas</button>
-            <button class="filter-btn" onclick="filtrar('suporte', this)">⚠️ Suporte</button>
-        </div>
-
-        <div class="contact-list" id="listaContatos"></div>
-    </div>
-
-    <div class="chat-area" id="areaChat">
-        <div class="welcome-screen" id="welcome">
-            <i class="fa-brands fa-whatsapp" style="font-size: 80px; color: #d1d7db;"></i>
-            <div class="welcome-text">
-                <h1>Zeus Web</h1>
-                <p style="color: #667781; margin-top: 15px; text-align: center;">Envie e receba mensagens sem desconectar seu robô.<br>Use o painel para monitorar em tempo real.</p>
-            </div>
-        </div>
-
-        <div style="display:none; flex-direction:column; height:100%;" id="chatReal">
-            <div class="chat-header">
-                <i class="fa-solid fa-arrow-left btn-back" onclick="fecharChat()"></i>
-                <div class="c-avatar" style="width: 40px; height: 40px; margin-right: 15px;"><i class="fa-solid fa-user"></i></div>
-                <div class="chat-header-info">
-                    <div class="chat-title" id="chatNome">Nome do Cliente</div>
-                    <div class="chat-status" id="chatTel">...</div>
-                </div>
-            </div>
-
-            <div class="messages-container" id="msgsContainer"></div>
-
-            <div class="chat-footer">
-                <div class="input-box">
-                    <input type="text" id="inputMsg" placeholder="Digite uma mensagem..." onkeypress="if(event.key==='Enter') enviar()">
-                </div>
-                <button class="btn-send" onclick="enviar()"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    let db = {};
-    let chatAtual = null;
-    let filtroAtual = 'todos';
-
-    async function atualizar() {
-        try {
-            const res = await fetch('/api/tudo');
-            const data = await res.json();
-
-            if (JSON.stringify(db) !== JSON.stringify(data.conversas)) {
-                db = data.conversas;
-                document.getElementById('last-update').innerText = 'Sync: ' + data.status;
-                renderizarLista();
-                if (chatAtual && db[chatAtual]) renderizarMsgs(chatAtual);
-            }
-        } catch (e) { console.log(e); }
-    }
-
-    function renderizarLista() {
-        const lista = document.getElementById('listaContatos');
-        const ordenados = Object.keys(db).sort((a, b) => db[b].lastUpdate - db[a].lastUpdate);
-
-        let html = '';
-        ordenados.forEach(tel => {
-            const c = db[tel];
-            if (filtroAtual === 'suporte' && !c.emSuporte) return;
-
-            const ult = c.mensagens[c.mensagens.length - 1] || { texto: '', hora: '' };
-            const active = chatAtual === tel ? 'active' : '';
-
-            let prevText = ult.texto;
-            if (prevText.includes('[LISTA]') || prevText.includes('[BOTÕES]')) prevText = "🤖 Interação do Robô";
-            if (prevText.length > 35) prevText = prevText.substring(0, 35) + '...';
-
-            const suporteBadge = c.emSuporte ? '<i class="fa-solid fa-circle-exclamation pulse-red"></i>' : '';
-
-            html += \`
-                <div class="contact-item \${active}" onclick="abrir('\${tel}')">
-                    <div class="avatar-wrapper">
-                        <div class="c-avatar"><i class="fa-solid fa-user"></i></div>
-                    </div>
-                    <div class="c-info">
-                        <div class="c-top">
-                            <span class="c-name">\${c.nome} \${suporteBadge}</span>
-                            <span class="c-time">\${ult.hora}</span>
-                        </div>
-                        <div class="c-preview">
-                            \${ult.de === 'atendente' ? '<i class="fa-solid fa-check" style="color:#53bdeb; margin-right:4px;"></i>' : ''}
-                            \${prevText}
-                        </div>
-                    </div>
-                </div>
-            \`;
-        });
-
-        lista.innerHTML = html;
-    }
-
-    function abrir(tel) {
-        chatAtual = tel;
-        document.getElementById('welcome').style.display = 'none';
-        document.getElementById('chatReal').style.display = 'flex';
-        document.getElementById('areaChat').classList.add('active');
-
-        const c = db[tel];
-        document.getElementById('chatNome').innerText = c.nome;
-        document.getElementById('chatTel').innerText = c.emSuporte ? '⚠️ Aguardando Suporte' : 'Online no Robô';
-        document.getElementById('chatTel').style.color = c.emSuporte ? '#ea0038' : '#8696a0';
-
-        renderizarMsgs(tel);
-        renderizarLista();
-    }
-
-    function fecharChat() {
-        chatAtual = null;
-        document.getElementById('areaChat').classList.remove('active');
-        document.getElementById('chatReal').style.display = 'none';
-        document.getElementById('welcome').style.display = 'flex';
-        renderizarLista();
-    }
-
-    function renderizarMsgs(tel) {
-        const div = document.getElementById('msgsContainer');
-        const msgs = db[tel].mensagens || [];
-
-        let html = '';
-        msgs.forEach(m => {
-            let classe = 'msg-in';
-            if (m.de === 'atendente') classe = 'msg-out';
-
-            if (m.de === 'bot' && (m.texto.includes('[LISTA]') || m.texto.includes('[BOTÕES]'))) {
-                html += \`
-                    <div class="msg msg-log">
-                        🤖 Enviou Menu/Botões para o cliente
-                        <span class="msg-meta">\${m.hora}</span>
-                    </div>
-                \`;
-            } else {
-                if (m.de === 'bot') classe = 'msg-out';
-                let style = (m.de === 'bot') ? 'font-style: italic; opacity: 0.9;' : '';
-
-                html += \`
-                    <div class="msg \${classe}" style="\${style}">
-                        \${m.texto.replace(/\\\\n/g, '<br>')}
-                        <span class="msg-meta">\${m.hora}</span>
-                    </div>
-                \`;
-            }
-        });
-
-        if (div.innerHTML.length !== html.length) {
-            div.innerHTML = html;
-            div.scrollTop = div.scrollHeight;
-        }
-    }
-
-    async function enviar() {
-        const inp = document.getElementById('inputMsg');
-        const txt = inp.value.trim();
-        if (!txt || !chatAtual) return;
-
-        inp.value = '';
-        db[chatAtual].mensagens.push({ de: 'atendente', texto: txt, hora: '..' });
-        renderizarMsgs(chatAtual);
-
-        await fetch('/api/responder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: chatAtual, msg: txt })
-        });
-    }
-
-    function filtrar(tipo, btn) {
-        filtroAtual = tipo;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderizarLista();
-    }
-
-    setInterval(atualizar, 10000);
-    atualizar();
-</script>
-</body>
-</html>`;
-
-// ROTA DO PAINEL
-app.get('/suporte', (req, res) => {
-    res.send(PAINEL_HTML);
-});
-
-app.use('/midias', express.static(__dirname + '/midias'));
-
-app.get('/monitor', (req, res) => {
-    res.sendFile(__dirname + '/monitor.html');
-});
-
-// APIs
-app.get('/api/tudo', (req, res) => {
-    const conversas = lerJSON(HISTORICO_FILE);
-    const lastActivity = moment().format('HH:mm:ss');
-    res.json({ status: lastActivity, conversas: conversas });
-});
-
-app.post('/api/responder', async (req, res) => {
-    const { to, msg } = req.body;
-    await enviarTexto(to, `*Suporte:* ${msg}`, true);
-    res.sendStatus(200);
-});
-
-// Outras Rotas
-app.get('/', (req, res) => {
-    res.send('Zeus online');
-});
-
-app.get('/webhook', (req, res) => {
-    if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
-        res.send(req.query['hub.challenge']);
-    } else {
-        res.sendStatus(403);
-    }
-});
-
-app.get('/manifest.json', (req, res) => {
-    res.json({ name: "Zeus Monitor", display: "standalone" });
-});
-
-app.listen(PORT, () => console.log(`\n🔱 ZEUS PRO v10.0 OFICIAL - ONLINE NA PORTA ${PORT} 🛡️`));
+        } else if (buttonId
