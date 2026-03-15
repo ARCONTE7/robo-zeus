@@ -32,9 +32,9 @@ const CIABRA_AUTH = "Basic " + Buffer.from(`${CIABRA_PUBLIC_KEY}:${CIABRA_SECRET
 const CLIENTE_FIXO_CIABRA = "";
 
 // ⚙️ CONFIGURAÇÕES DO PAINEL ZEUS
-const PANEL_URL = "https://netuno.painelr.top";
-const USERNAME = "acessonetcast";
-const PASSWORD = "flamengo92!";
+const PANEL_URL = "https://streaming.painelr.top";
+const USERNAME = "netcaste";
+const PASSWORD = "10203050";
 const MEMBER_ID = "163207";
 
 // 👨‍💻 SUPORTE HUMANO
